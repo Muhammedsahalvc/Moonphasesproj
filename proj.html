@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lunar Cycle Viewer</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: radial-gradient(circle at top, #0d1b2a, #1b263b, #415a77);
+      color: #eee;
+      min-height: 100vh;
+      padding: 15px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      color: #ffd369;
+      margin-bottom: 5px;
+    }
+
+    .tagline {
+      text-align: center;
+      color: #ccc;
+      margin-bottom: 25px;
+      font-size: 1rem;
+    }
+
+    .box {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 1000px;
+      margin: 0 auto 25px;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    input::placeholder {
+      color: #ddd;
+    }
+
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      background: #ffd369;
+      color: #222;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #ffbe0b;
+    }
+
+    .info { font-size: 0.85rem; color: #aaa; margin-top: 8px; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+      gap: 16px;
+      margin-top: 25px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.08);
+      padding: 18px;
+      border-radius: 12px;
+      text-align: center;
+      transition: 0.3s;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: #ffd369;
+    }
+
+    .card.today {
+      border: 2px solid #ffd369;
+    }
+
+    .date {
+      font-weight: bold;
+      color: #ffd369;
+      margin-bottom: 12px;
+    }
+
+    .moon-img {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 10px;
+    }
+
+    .phase-name { font-size: 1.1rem; margin-bottom: 6px; }
+
+    .details { font-size: 0.85rem; color: #bbb; }
+
+    .sun {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      font-size: 0.85rem;
+    }
+
+    .sun strong { color: #ffd369; display: block; }
+  </style>
+</head>
+<body>
+  <h1>🌕 Lunar Cycle Viewer</h1>
+  <p class="tagline">Track moon phases for your location</p>
+
+  <div class="box">
+    <div class="form-row">
+      <input type="text" id="place" placeholder="Enter a city (e.g., London)" value="London">
+      <button id="getBtn" onclick="loadMoon()">Show Phases</button>
+    </div>
+    <p class="info">Tip: Type any location and click "Show Phases".</p>
+  </div>
+
+  <div id="loading" style="display:none; text-align:center; color:#ffd369;">Loading data...</div>
+  <div id="error" style="display:none; color:#ff6b6b; text-align:center; margin-bottom:20px;"></div>
+
+  <div id="cards" class="cards"></div>
+
+  <div id="moreWrap" style="text-align:center; margin-top:20px; display:none;">
+    <button onclick="showAll()">See Next 7 Days</button>
+  </div>
+
+  <script>
+    let storedData = [];
+    const KEY = "KVH3YCUEA3JV75L8GXNMSF2BX"; // API key
+
+    // Map moon phases to images
+    function getMoonImage(p) {
+      if (p === 0 || p === 1) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/new-moon.svg";
+      if (p < 0.25) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/waxing-crescent.svg";
+      if (p === 0.25) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/first-quarter.svg";
+      if (p < 0.5) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/waxing-gibbous.svg";
+      if (p === 0.5) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/full-moon.svg";
+      if (p < 0.75) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/waning-gibbous.svg";
+      if (p === 0.75) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/last-quarter.svg";
+      return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/waning-crescent.svg";
+    }
+
+    function phaseName(p) {
+      if (p === 0 || p === 1) return "New Moon";
+      if (p < 0.25) return "Waxing Crescent";
+      if (p === 0.25) return "First Quarter";
+      if (p < 0.5) return "Waxing Gibbous";
+      if (p === 0.5) return "Full Moon";
+      if (p < 0.75) return "Waning Gibbous";
+      if (p === 0.75) return "Last Quarter";
+      return "Waning Crescent";
+    }
+
+    function phaseDesc(p) {
+      if (p === 0 || p === 1) return "Moon not visible.";
+      if (p < 0.25) return "Thin crescent on the right side.";
+      if (p === 0.25) return "Half moon visible.";
+      if (p < 0.5) return "More than half illuminated.";
+      if (p === 0.5) return "Fully visible moon.";
+      if (p < 0.75) return "Decreasing illumination.";
+      if (p === 0.75) return "Half moon (waning).";
+      return "Small crescent (waning).";
+    }
+
+    function formatDate(str) {
+      const d = new Date(str);
+      const now = new Date();
+      if (d.toDateString() === now.toDateString()) return "Today";
+      const tomorrow = new Date();
+      tomorrow.setDate(now.getDate() + 1);
+      if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+      return d.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
+    }
+
+    function formatTime(t) {
+      const d = new Date(`2000-01-01T${t}`);
+      return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+    }
+
+    async function loadMoon() {
+      const place = document.getElementById("place").value.trim();
+      const loader = document.getElementById("loading");
+      const err = document.getElementById("error");
+      const list = document.getElementById("cards");
+      const btn = document.getElementById("getBtn");
+
+      if (!place) { err.textContent="Enter a location."; err.style.display="block"; return; }
+
+      loader.style.display="block"; err.style.display="none"; list.innerHTML=""; btn.disabled=true;
+
+      try {
+        const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(place)}?unitGroup=us&key=${KEY}&include=days&elements=datetime,moonphase,sunrise,sunset`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(res.statusText);
+        const data = await res.json();
+
+        storedData = data.days.slice(0,8);
+        showCards([storedData[0]], true);
+        document.getElementById("moreWrap").style.display = "block";
+      } catch(e) {
+        err.textContent = "Failed: " + e.message;
+        err.style.display="block";
+      } finally {
+        loader.style.display="none"; btn.disabled=false;
+      }
+    }
+
+    function showCards(days, onlyOne=false) {
+      const list = document.getElementById("cards");
+      list.innerHTML = "";
+      days.forEach((d, i) => {
+        const p = parseFloat(d.moonphase);
+        const card = document.createElement("div");
+        card.className = "card" + ((onlyOne || i===0) ? " today" : "");
+        card.innerHTML = `
+          <div class="date">${formatDate(d.datetime)}</div>
+          <img class="moon-img" src="${getMoonImage(p)}" alt="Moon Phase">
+          <div class="phase-name">${phaseName(p)}</div>
+          <div class="details">Illumination: ${(p*100).toFixed(1)}%<br>${phaseDesc(p)}</div>
+          <div class="sun">
+            <div><strong>Sunrise</strong>${d.sunrise?formatTime(d.sunrise):"N/A"}</div>
+            <div><strong>Sunset</strong>${d.sunset?formatTime(d.sunset):"N/A"}</div>
+          </div>`;
+        list.appendChild(card);
+      });
+    }
+
+    function showAll() {
+      showCards(storedData);
+      document.getElementById("moreWrap").style.display="none";
+    }
+
+    document.addEventListener("keypress", e => {
+      if (e.key==="Enter") loadMoon();
+    });
+  </script>
+</body>
+</html>
