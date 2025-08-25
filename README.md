@@ -1,0 +1,1 @@
+hereThis project is a simple Moon Phase Tracker built using HTML, CSS, and JavaScript. It calculates the current moon phase based on today’s date and displays it along with an image for better understanding. The system is lightweight, browser-friendly, and helps users visually identify different moon phases easily.
