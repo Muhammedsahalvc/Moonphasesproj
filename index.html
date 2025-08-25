@@ -1,259 +1,214 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lunar Cycle Viewer</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Moon Phase Tracker</title>
   <style>
-    body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: radial-gradient(circle at top, #0d1b2a, #1b263b, #415a77);
-      color: #eee;
-      min-height: 100vh;
-      padding: 15px;
+    :root{
+      --bg:#0b0c10; --card:#15161a; --text:#eaeaea; --muted:#a8b3cf; --accent:#ffd369;
     }
-
-    h1 {
-      text-align: center;
-      font-size: 2.5rem;
-      color: #ffd369;
-      margin-bottom: 5px;
+    *{box-sizing:border-box}
+    body{
+      margin:0; padding:24px; font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 700px at 50% -10%, #182036, #10131f 40%, var(--bg) 70%); color:var(--text);
     }
-
-    .tagline {
-      text-align: center;
-      color: #ccc;
-      margin-bottom: 25px;
-      font-size: 1rem;
+    h1{margin:0 0 6px; text-align:center; font-size:clamp(1.6rem, 2.8vw, 2.2rem)}
+    .sub{color:var(--muted); text-align:center; margin-bottom:22px}
+    .wrap{max-width:980px; margin:0 auto}
+    .cards{
+      display:grid; gap:16px; grid-template-columns:repeat(auto-fit, minmax(230px,1fr));
     }
-
-    .box {
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 12px;
-      padding: 20px;
-      max-width: 1000px;
-      margin: 0 auto 25px;
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:16px; padding:18px; text-align:center;
+      box-shadow:0 8px 30px rgba(0,0,0,.35);
     }
-
-    .form-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+    .card.today{ border-color:rgba(255,211,105,.55); box-shadow:0 10px 40px rgba(255,211,105,.18);}
+    .date{color:var(--accent); font-weight:700; margin-bottom:8px}
+    .label{margin-top:8px; font-weight:600}
+    .muted{color:var(--muted); font-size:.9rem}
+    .svgwrap{width:120px; height:120px; margin:10px auto}
+    .btnrow{display:flex; justify-content:center; gap:12px; margin:22px 0}
+    button{
+      background:var(--accent); color:#1a1a1a; border:none; font-weight:700; cursor:pointer;
+      padding:12px 18px; border-radius:10px; transition:.2s transform, .2s box-shadow;
     }
-
-    input[type="text"] {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      border-radius: 6px;
-      background: rgba(255,255,255,0.15);
-      color: #fff;
-    }
-
-    input::placeholder {
-      color: #ddd;
-    }
-
-    button {
-      padding: 10px 18px;
-      border: none;
-      border-radius: 6px;
-      background: #ffd369;
-      color: #222;
-      font-weight: bold;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    button:hover {
-      background: #ffbe0b;
-    }
-
-    .info { font-size: 0.85rem; color: #aaa; margin-top: 8px; }
-
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
-      gap: 16px;
-      margin-top: 25px;
-    }
-
-    .card {
-      background: rgba(255,255,255,0.08);
-      padding: 18px;
-      border-radius: 12px;
-      text-align: center;
-      transition: 0.3s;
-      border: 1px solid rgba(255,255,255,0.2);
-    }
-
-    .card:hover {
-      transform: translateY(-4px);
-      border-color: #ffd369;
-    }
-
-    .card.today {
-      border: 2px solid #ffd369;
-    }
-
-    .date {
-      font-weight: bold;
-      color: #ffd369;
-      margin-bottom: 12px;
-    }
-
-    .moon-img {
-      width: 120px;
-      height: 120px;
-      margin-bottom: 10px;
-    }
-
-    .phase-name { font-size: 1.1rem; margin-bottom: 6px; }
-
-    .details { font-size: 0.85rem; color: #bbb; }
-
-    .sun {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 12px;
-      font-size: 0.85rem;
-    }
-
-    .sun strong { color: #ffd369; display: block; }
+    button:hover{ transform:translateY(-1px); box-shadow:0 6px 20px rgba(255,211,105,.35);}
+    button.secondary{ background:transparent; color:var(--text); border:1px solid rgba(255,255,255,.2); }
+    .hidden{display:none}
+    @media (max-width:520px){ .svgwrap{width:100px;height:100px} }
   </style>
 </head>
 <body>
-  <h1>🌕 Lunar Cycle Viewer</h1>
-  <p class="tagline">Track moon phases for your location</p>
+  <div class="wrap">
+    <h1>🌙 Moon Phase Tracker</h1>
+    <p class="sub">Today’s phase and the next 7 days — no internet images or APIs required.</p>
 
-  <div class="box">
-    <div class="form-row">
-      <input type="text" id="place" placeholder="Enter a city (e.g., London)" value="London">
-      <button id="getBtn" onclick="loadMoon()">Show Phases</button>
+    <div id="today" class="cards"></div>
+
+    <div class="btnrow">
+      <button id="showNext">Show Next 7 Days</button>
+      <button id="backToToday" class="secondary hidden">Back to Today</button>
     </div>
-    <p class="info">Tip: Type any location and click "Show Phases".</p>
-  </div>
 
-  <div id="loading" style="display:none; text-align:center; color:#ffd369;">Loading data...</div>
-  <div id="error" style="display:none; color:#ff6b6b; text-align:center; margin-bottom:20px;"></div>
-
-  <div id="cards" class="cards"></div>
-
-  <div id="moreWrap" style="text-align:center; margin-top:20px; display:none;">
-    <button onclick="showAll()">See Next 7 Days</button>
+    <div id="next7" class="cards hidden"></div>
   </div>
 
   <script>
-    let storedData = [];
-    const KEY = "KVH3YCUEA3JV75L8GXNMSF2BX"; // API key
+    // --- Moon phase core (approximate but reliable for UI purposes) ---
+    // Uses a standard reference new moon: 2000-01-06 18:14 UTC
+    const SYNODIC = 29.530588853;
+    const REF = Date.UTC(2000,0,6,18,14,0);
 
-    // Map moon phases to images
-    function getMoonImage(p) {
-      if (p === 0 || p === 1) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/new-moon.svg";
-      if (p < 0.25) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/waxing-crescent.svg";
-      if (p === 0.25) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/first-quarter.svg";
-      if (p < 0.5) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/waxing-gibbous.svg";
-      if (p === 0.5) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/full-moon.svg";
-      if (p < 0.75) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/waning-gibbous.svg";
-      if (p === 0.75) return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/last-quarter.svg";
-      return "https://raw.githubusercontent.com/manifestinteractive/moon-phase-icons/master/svg/waning-crescent.svg";
+    function phaseFraction(date){ // 0..1 (0 = New, 0.5 = Full)
+      const dUTC = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+      let days = (dUTC - REF) / 86400000;
+      days = ((days % SYNODIC) + SYNODIC) % SYNODIC;           // wrap to [0,SYNODIC)
+      return days / SYNODIC;
     }
 
-    function phaseName(p) {
-      if (p === 0 || p === 1) return "New Moon";
-      if (p < 0.25) return "Waxing Crescent";
-      if (p === 0.25) return "First Quarter";
-      if (p < 0.5) return "Waxing Gibbous";
-      if (p === 0.5) return "Full Moon";
-      if (p < 0.75) return "Waning Gibbous";
-      if (p === 0.75) return "Last Quarter";
-      return "Waning Crescent";
+    function illuminationPercent(frac){ // rough illuminated fraction (%)
+      return ((1 - Math.cos(2*Math.PI*frac)) / 2) * 100;
     }
 
-    function phaseDesc(p) {
-      if (p === 0 || p === 1) return "Moon not visible.";
-      if (p < 0.25) return "Thin crescent on the right side.";
-      if (p === 0.25) return "Half moon visible.";
-      if (p < 0.5) return "More than half illuminated.";
-      if (p === 0.5) return "Fully visible moon.";
-      if (p < 0.75) return "Decreasing illumination.";
-      if (p === 0.75) return "Half moon (waning).";
-      return "Small crescent (waning).";
+    function phaseIndex(frac){ // 8 buckets, rounded to nearest
+      return Math.round(frac * 8) % 8;
     }
 
-    function formatDate(str) {
-      const d = new Date(str);
-      const now = new Date();
-      if (d.toDateString() === now.toDateString()) return "Today";
-      const tomorrow = new Date();
-      tomorrow.setDate(now.getDate() + 1);
-      if (d.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+    const PHASE_NAMES = [
+      "New Moon","Waxing Crescent","First Quarter","Waxing Gibbous",
+      "Full Moon","Waning Gibbous","Last Quarter","Waning Crescent"
+    ];
+
+    // --- Inline SVG icons (no external links) ---
+    function svgFor(idx){
+      // base colors
+      const dark = "#1f2230";
+      const light = "#f2f2f2";
+      const stroke = "#0d0f17";
+      const outline = `<circle cx="50" cy="50" r="46" fill="${dark}" stroke="${stroke}" stroke-width="2"/>`;
+
+      // helpers
+      const halfRight = `
+        <defs><clipPath id="R"><rect x="50" y="4" width="46" height="92" rx="0"/></clipPath></defs>
+        <circle cx="50" cy="50" r="46" fill="${light}" clip-path="url(#R)"/>
+      `;
+      const halfLeft = `
+        <defs><clipPath id="L"><rect x="4" y="4" width="46" height="92" rx="0"/></clipPath></defs>
+        <circle cx="50" cy="50" r="46" fill="${light}" clip-path="url(#L)"/>
+      `;
+      const crescentRight = `
+        <defs>
+          <clipPath id="Cbase"><circle cx="50" cy="50" r="46"/></clipPath>
+        </defs>
+        <g clip-path="url(#Cbase)">
+          <circle cx="60" cy="50" r="46" fill="${light}"/>
+        </g>
+      `;
+      const crescentLeft = `
+        <defs>
+          <clipPath id="Cbase2"><circle cx="50" cy="50" r="46"/></clipPath>
+        </defs>
+        <g clip-path="url(#Cbase2)">
+          <circle cx="40" cy="50" r="46" fill="${light}"/>
+        </g>
+      `;
+      const gibbousRight = `
+        <defs>
+          <clipPath id="Gbase"><circle cx="50" cy="50" r="46"/></clipPath>
+        </defs>
+        <g clip-path="url(#Gbase)">
+          <circle cx="50" cy="50" r="46" fill="${light}"/>
+          <circle cx="40" cy="50" r="46" fill="${dark}"/>
+        </g>
+      `;
+      const gibbousLeft = `
+        <defs>
+          <clipPath id="Gbase2"><circle cx="50" cy="50" r="46"/></clipPath>
+        </defs>
+        <g clip-path="url(#Gbase2)">
+          <circle cx="50" cy="50" r="46" fill="${light}"/>
+          <circle cx="60" cy="50" r="46" fill="${dark}"/>
+        </g>
+      `;
+
+      const svgs = [
+        `${outline}`,                               // 0 New (dark)
+        `${outline}${crescentRight}`,               // 1 Waxing Crescent
+        `${outline}${halfRight}`,                   // 2 First Quarter
+        `${outline}${gibbousRight}`,                // 3 Waxing Gibbous
+        `<circle cx="50" cy="50" r="46" fill="${light}" stroke="${stroke}" stroke-width="2"/>`, // 4 Full
+        `${outline}${gibbousLeft}`,                 // 5 Waning Gibbous
+        `${outline}${halfLeft}`,                    // 6 Last Quarter
+        `${outline}${crescentLeft}`                 // 7 Waning Crescent
+      ];
+
+      return `<svg viewBox="0 0 100 100" width="100%" height="100%" role="img" aria-label="${PHASE_NAMES[idx]} icon">${svgs[idx]}</svg>`;
+    }
+
+    // --- UI helpers ---
+    function fmtDate(d){
+      const today = new Date();
+      const t0 = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+      const d0 = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+
+      const diff = (d0 - t0)/86400000;
+      if (diff === 0) return "Today";
+      if (diff === 1) return "Tomorrow";
       return d.toLocaleDateString(undefined, { weekday:"short", month:"short", day:"numeric" });
     }
 
-    function formatTime(t) {
-      const d = new Date(`2000-01-01T${t}`);
-      return d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+    function makeCard(date, isToday=false){
+      const frac = phaseFraction(date);
+      const idx = phaseIndex(frac);
+      const illum = illuminationPercent(frac);
+      return `
+        <div class="card ${isToday ? 'today' : ''}">
+          <div class="date">${fmtDate(date)}</div>
+          <div class="svgwrap">${svgFor(idx)}</div>
+          <div class="label">${PHASE_NAMES[idx]}</div>
+          <div class="muted">Illumination: ${illum.toFixed(1)}%</div>
+        </div>
+      `;
     }
 
-    async function loadMoon() {
-      const place = document.getElementById("place").value.trim();
-      const loader = document.getElementById("loading");
-      const err = document.getElementById("error");
-      const list = document.getElementById("cards");
-      const btn = document.getElementById("getBtn");
+    function render(){
+      const todayWrap = document.getElementById('today');
+      const nextWrap  = document.getElementById('next7');
+      const showBtn   = document.getElementById('showNext');
+      const backBtn   = document.getElementById('backToToday');
 
-      if (!place) { err.textContent="Enter a location."; err.style.display="block"; return; }
+      // Today
+      const today = new Date();
+      todayWrap.innerHTML = makeCard(today, true);
 
-      loader.style.display="block"; err.style.display="none"; list.innerHTML=""; btn.disabled=true;
-
-      try {
-        const url = `https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/${encodeURIComponent(place)}?unitGroup=us&key=${KEY}&include=days&elements=datetime,moonphase,sunrise,sunset`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(res.statusText);
-        const data = await res.json();
-
-        storedData = data.days.slice(0,8);
-        showCards([storedData[0]], true);
-        document.getElementById("moreWrap").style.display = "block";
-      } catch(e) {
-        err.textContent = "Failed: " + e.message;
-        err.style.display="block";
-      } finally {
-        loader.style.display="none"; btn.disabled=false;
+      // Next 7 (hidden until clicked)
+      const cards = [];
+      for (let i=1;i<=7;i++){
+        const d = new Date();
+        d.setDate(d.getDate()+i);
+        cards.push(makeCard(d));
       }
+      nextWrap.innerHTML = cards.join('');
+
+      showBtn.onclick = () => {
+        nextWrap.classList.remove('hidden');
+        backBtn.classList.remove('hidden');
+        showBtn.classList.add('hidden');
+        // Scroll smoothly to the next section for phones
+        nextWrap.scrollIntoView({behavior:"smooth", block:"start"});
+      };
+      backBtn.onclick = () => {
+        nextWrap.classList.add('hidden');
+        backBtn.classList.add('hidden');
+        showBtn.classList.remove('hidden');
+        window.scrollTo({top:0, behavior:"smooth"});
+      };
     }
 
-    function showCards(days, onlyOne=false) {
-      const list = document.getElementById("cards");
-      list.innerHTML = "";
-      days.forEach((d, i) => {
-        const p = parseFloat(d.moonphase);
-        const card = document.createElement("div");
-        card.className = "card" + ((onlyOne || i===0) ? " today" : "");
-        card.innerHTML = `
-          <div class="date">${formatDate(d.datetime)}</div>
-          <img class="moon-img" src="${getMoonImage(p)}" alt="Moon Phase">
-          <div class="phase-name">${phaseName(p)}</div>
-          <div class="details">Illumination: ${(p*100).toFixed(1)}%<br>${phaseDesc(p)}</div>
-          <div class="sun">
-            <div><strong>Sunrise</strong>${d.sunrise?formatTime(d.sunrise):"N/A"}</div>
-            <div><strong>Sunset</strong>${d.sunset?formatTime(d.sunset):"N/A"}</div>
-          </div>`;
-        list.appendChild(card);
-      });
-    }
-
-    function showAll() {
-      showCards(storedData);
-      document.getElementById("moreWrap").style.display="none";
-    }
-
-    document.addEventListener("keypress", e => {
-      if (e.key==="Enter") loadMoon();
-    });
+    render();
   </script>
 </body>
 </html>
